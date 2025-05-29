@@ -1,12 +1,13 @@
-use std::{collections::binary_heap::Iter, iter::Enumerate};
+use std::{iter::Enumerate};
 
 pub struct Element {
     pub type_: ElementType,
     pub attributes: Vec<(String, String)>,
     pub children: Vec<Element>,
-    pub text: String,
+    pub text: Option<String>,
 }
 
+#[allow(non_camel_case_types)]
 pub enum ElementType {
     p,
     div,
@@ -17,7 +18,7 @@ pub enum ElementType {
 }
 
 impl Element {
-    pub fn new(type_: ElementType, attributes: Vec<(String, String)>, text: String) -> Self {
+        pub fn new(type_: ElementType, attributes: Vec<(String, String)>, text: Option<String>) -> Self {
         Element { type_, attributes, children: Vec::new(), text }
     }
 }
@@ -27,12 +28,10 @@ pub struct WebPage {
 }
 
 // Span of a specific tag, with the starting index in the string and the ending index
-struct TagSpan{
-    start: usize,
-    end: usize,
-}
+struct TagSpan(usize, usize);
 
-enum ParseError{
+#[derive(Debug)]
+pub enum ParseError{
     MultipleStarts((usize, usize)),
     MultipleEnds(usize)
 }
@@ -46,7 +45,7 @@ impl TagSpan{
         for index in 0..chars.len(){
             match chars[index]{
                 '<' => {
-                    //todo
+                    
                     if is_capturing{ return Err(ParseError::MultipleStarts((start, index))) }
 
                     start = index;
@@ -55,13 +54,13 @@ impl TagSpan{
                 }
 
                 '>' => {
-                    //todo
-                    if !is_capturing{ return Err(ParseError::MultipleEnds((index))); }
+                
+                    if !is_capturing{ return Err(ParseError::MultipleEnds(index)); }
 
                     end = index;
                     is_capturing = false;
 
-                    spans.push(TagSpan { start, end });
+                    spans.push(TagSpan (start, end));
 
                 }
 
@@ -84,8 +83,22 @@ impl WebPage {
         
         
         
-        return WebPage { elements }
+        return Ok(WebPage { elements })
     }
 }
 
 
+#[cfg(test)]
+mod tagspan_tests{
+    use super::*;
+    #[test]
+    fn test_by_len(){
+        let data = "<div> </div> <p> <a>";
+        let spans = TagSpan::from_rustml_to_spans(data).unwrap();
+        assert_eq!(spans.len() as i32, 4);
+        let first = (spans[0].0, spans[0].1);
+        assert_eq!(first.0 as i32, 0);
+        assert_eq!(first.1 as i32, 4);
+    }
+    
+}
